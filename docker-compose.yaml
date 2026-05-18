@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models  # Mount models directory to allow hot-swapping
+    environment:
+      - GOVI_JWT_SECRET=${GOVI_JWT_SECRET:-default-dev-secret-key-change-in-prod}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

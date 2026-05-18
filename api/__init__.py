@@ -1,0 +1,3 @@
+"""
+Govi Disease Detection API
+"""

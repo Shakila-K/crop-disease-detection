@@ -1,0 +1,8 @@
+crop_name: potato
+classes:
+  - Early_Blight
+  - Late_Blight
+  - Healthy
+current_version: 1
+head_path: models/heads/potato_v1.pt
+exemplar_path: models/exemplars/potato/

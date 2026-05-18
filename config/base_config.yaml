@@ -1,0 +1,35 @@
+model:
+  backbone: efficientnet_b0
+  feature_dim: 1280
+  hidden_dim: 512
+  dropout: 0.3
+  pretrained: true
+
+training:
+  epochs: 50
+  batch_size: 32
+  learning_rate: 0.001
+  weight_decay: 0.01
+  scheduler: cosine_annealing
+  early_stopping_patience: 10
+  mixed_precision: true
+
+incremental:
+  distillation_alpha: 0.7
+  distillation_temperature: 2.0
+  exemplar_per_class: 20
+  replay_ratio: 0.3
+
+data:
+  image_size: 224
+  split_ratio: [0.8, 0.1, 0.1]
+  num_workers: 4
+  seed: 42
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  max_image_size_mb: 10
+  enable_gradcam: false
+  jwt_algorithm: "HS256"
+  # jwt_secret: Set via GOVI_JWT_SECRET environment variable

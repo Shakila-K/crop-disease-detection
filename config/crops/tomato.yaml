@@ -1,0 +1,15 @@
+crop_name: tomato
+classes:
+  - Bacterial_Spot
+  - Early_Blight
+  - Late_Blight
+  - Leaf_Mold
+  - Septoria_Leaf_Spot
+  - Spider_Mites
+  - Target_Spot
+  - Mosaic_Virus
+  - Yellow_Leaf_Curl_Virus
+  - Healthy
+current_version: 1
+head_path: models/heads/tomato_v1.pt
+exemplar_path: models/exemplars/tomato/
