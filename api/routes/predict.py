@@ -2,7 +2,7 @@ import logging
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
 
-from ...inference.predictor import Predictor
+from src.inference.predictor import Predictor
 from ..schemas.prediction import PredictionResponse, ErrorResponse
 from ..dependencies import get_current_user
 
