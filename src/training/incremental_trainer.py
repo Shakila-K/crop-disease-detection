@@ -177,7 +177,8 @@ class IncrementalTrainer:
             model.train()
             total_loss, correct, total = 0.0, 0, 0
 
-            for images, labels in tqdm(train_loader, desc=f"Epoch {epoch+1}", leave=False):
+            pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{self.epochs} [Train]", leave=False)
+            for i, (images, labels) in enumerate(pbar):
                 images, labels = images.to(self.device), labels.to(self.device)
                 optimizer.zero_grad()
 
@@ -192,7 +193,8 @@ class IncrementalTrainer:
                 scaler.scale(loss).backward()
                 scaler.step(optimizer)
                 scaler.update()
-
+                
+                pbar.set_postfix({"iter": i + 1})
                 total_loss += loss.item() * images.size(0)
                 correct += (logits.argmax(1) == labels).sum().item()
                 total += images.size(0)

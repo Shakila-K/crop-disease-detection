@@ -130,8 +130,8 @@ class Trainer:
         best_val_acc, patience_counter, best_state = 0.0, 0, None
 
         for epoch in range(self.epochs):
-            t_loss, t_acc = self._train_epoch(model, train_loader, criterion, optimizer, scaler)
-            v_loss, v_acc = self._validate(model, val_loader, criterion)
+            t_loss, t_acc = self._train_epoch(model, train_loader, criterion, optimizer, scaler, epoch, self.epochs)
+            v_loss, v_acc = self._validate(model, val_loader, criterion, epoch, self.epochs)
             scheduler.step()
 
             history["train_loss"].append(t_loss)
@@ -167,10 +167,11 @@ class Trainer:
         logger.info("[6/6] Saving...")
         return self._save_all(model, manifest, class_names, test_metrics, history)
 
-    def _train_epoch(self, model, loader, criterion, optimizer, scaler):
+    def _train_epoch(self, model, loader, criterion, optimizer, scaler, epoch, total_epochs):
         model.train()
         total_loss, correct, total = 0.0, 0, 0
-        for images, labels in tqdm(loader, desc="Training", leave=False):
+        pbar = tqdm(loader, desc=f"Epoch {epoch+1}/{total_epochs} [Train]", leave=False)
+        for i, (images, labels) in enumerate(pbar):
             images, labels = images.to(self.device), labels.to(self.device)
             optimizer.zero_grad()
             with torch.autocast(device_type=self.device.type, enabled=self.mixed_precision):
@@ -179,16 +180,17 @@ class Trainer:
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
+            pbar.set_postfix({"iter": i + 1})
             total_loss += loss.item() * images.size(0)
             correct += (logits.argmax(1) == labels).sum().item()
             total += images.size(0)
         return total_loss / total, correct / total
 
     @torch.no_grad()
-    def _validate(self, model, loader, criterion):
+    def _validate(self, model, loader, criterion, epoch, total_epochs):
         model.eval()
         total_loss, correct, total = 0.0, 0, 0
-        for images, labels in tqdm(loader, desc="Validating", leave=False):
+        for images, labels in tqdm(loader, desc=f"Epoch {epoch+1}/{total_epochs} [Val]", leave=False):
             images, labels = images.to(self.device), labels.to(self.device)
             with torch.autocast(device_type=self.device.type, enabled=self.mixed_precision):
                 logits = model(images)
