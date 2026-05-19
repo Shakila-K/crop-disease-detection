@@ -1,7 +1,7 @@
 # Data and model artifacts
-data/
-models/
-outputs/
+/data/
+/models/
+/outputs/
 
 # Python
 __pycache__/
