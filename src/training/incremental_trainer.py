@@ -13,7 +13,6 @@ from typing import Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
-from torch.cuda.amp import GradScaler, autocast
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import ConcatDataset, DataLoader
@@ -166,7 +165,10 @@ class IncrementalTrainer:
         scheduler = CosineAnnealingLR(optimizer, T_max=self.epochs)
         criterion = CombinedLoss(self.distillation_alpha,
                                  self.distillation_temperature, old_num_classes)
-        scaler = GradScaler(enabled=self.mixed_precision)
+        try:
+            scaler = torch.amp.GradScaler(self.device.type, enabled=self.mixed_precision)
+        except AttributeError:
+            scaler = torch.cuda.amp.GradScaler(enabled=self.mixed_precision)
 
         best_val_acc, patience, best_state = 0.0, 0, None
         history = {"train_loss": [], "train_acc": []}
@@ -183,7 +185,7 @@ class IncrementalTrainer:
                 with torch.no_grad():
                     old_logits = old_model(images)
 
-                with autocast(enabled=self.mixed_precision, device_type=self.device.type):
+                with torch.autocast(device_type=self.device.type, enabled=self.mixed_precision):
                     logits = model(images)
                     loss = criterion(logits, labels, old_logits)
 

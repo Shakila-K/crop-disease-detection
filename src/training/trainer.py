@@ -13,7 +13,6 @@ from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn as nn
-from torch.cuda.amp import GradScaler, autocast
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
@@ -120,7 +119,10 @@ class Trainer:
         optimizer = AdamW(param_groups, weight_decay=self.weight_decay)
         scheduler = CosineAnnealingLR(optimizer, T_max=self.epochs)
         criterion = nn.CrossEntropyLoss()
-        scaler = GradScaler(enabled=self.mixed_precision)
+        try:
+            scaler = torch.amp.GradScaler(self.device.type, enabled=self.mixed_precision)
+        except AttributeError:
+            scaler = torch.cuda.amp.GradScaler(enabled=self.mixed_precision)
 
         # 4) Training loop
         logger.info("[4/6] Training...")
@@ -171,7 +173,7 @@ class Trainer:
         for images, labels in tqdm(loader, desc="Training", leave=False):
             images, labels = images.to(self.device), labels.to(self.device)
             optimizer.zero_grad()
-            with autocast(enabled=self.mixed_precision, device_type=self.device.type):
+            with torch.autocast(device_type=self.device.type, enabled=self.mixed_precision):
                 logits = model(images)
                 loss = criterion(logits, labels)
             scaler.scale(loss).backward()
@@ -188,7 +190,7 @@ class Trainer:
         total_loss, correct, total = 0.0, 0, 0
         for images, labels in tqdm(loader, desc="Validating", leave=False):
             images, labels = images.to(self.device), labels.to(self.device)
-            with autocast(enabled=self.mixed_precision, device_type=self.device.type):
+            with torch.autocast(device_type=self.device.type, enabled=self.mixed_precision):
                 logits = model(images)
                 loss = criterion(logits, labels)
             total_loss += loss.item() * images.size(0)
