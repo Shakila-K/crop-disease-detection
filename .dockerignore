@@ -1,0 +1,28 @@
+# Git
+.git
+.gitignore
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE and Editors
+.idea/
+.vscode/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local data and outputs
+data/
+outputs/
+
+# Models (these are mounted via volume in docker-compose.yml)
+models/
+
+# Env files
+.env
+.env.*
