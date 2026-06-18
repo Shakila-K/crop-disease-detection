@@ -18,6 +18,12 @@ COPY requirements.txt .
 # We only need the API/inference dependencies for production, not the training ones.
 # But for simplicity, we install the whole requirements.txt here.
 # In a true prod env, you'd split requirements_api.txt and requirements_train.txt.
+# Set pip timeout, retries, and use a fast mirror + CPU PyTorch registry
+ENV PIP_DEFAULT_TIMEOUT=60 \
+    PIP_RETRIES=10 \
+    PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple \
+    PIP_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project files

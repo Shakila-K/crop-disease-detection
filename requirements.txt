@@ -1,4 +1,4 @@
---extra-index-url https://download.pytorch.org/whl/cu124
+--extra-index-url https://download.pytorch.org/whl/cpu
 
 # Core ML
 torch>=2.2.0
