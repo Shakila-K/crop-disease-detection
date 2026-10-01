@@ -10,7 +10,11 @@ import json
 import logging
 import os
 from typing import Dict, List, Optional
-import requests
+
+try:
+    import requests
+except ImportError:
+    import httpx as requests
 
 logger = logging.getLogger(__name__)
 
