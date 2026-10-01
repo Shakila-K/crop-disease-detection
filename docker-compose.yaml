@@ -9,6 +9,9 @@ services:
       - ./models:/app/models  # Mount models directory to allow hot-swapping
     environment:
       - GOVI_JWT_SECRET=${GOVI_JWT_SECRET:-default-dev-secret-key-change-in-prod}
+      - GROK_API_KEY=${GROK_API_KEY:-}
+      - GROK_FALLBACK_THRESHOLD=${GROK_FALLBACK_THRESHOLD:-0.60}
+      - GROK_VISION_MODEL=${GROK_VISION_MODEL:-grok-2-vision-1212}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
