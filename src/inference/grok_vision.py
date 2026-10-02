@@ -73,72 +73,93 @@ Return ONLY a valid JSON object with no markdown formatting or fences:
   "explanation": "<Concise diagnostic explanation of visual symptoms>"
 }}"""
 
-    try:
-        logger.info(f"Calling Grok Vision API ({model}) for crop '{crop_type}'...")
-        response = requests.post(
-            GROK_API_URL,
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {grok_api_key}",
-            },
-            json={
-                "model": model,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": data_url,
-                                    "detail": "high"
+    # List of vision models to try in case specific version is not enabled on account
+    primary_model = os.getenv("GROK_VISION_MODEL", DEFAULT_GROK_VISION_MODEL).strip()
+    candidate_models = [primary_model]
+    for fallback in ["grok-2-vision", "grok-vision-beta", "grok-2-latest"]:
+        if fallback not in candidate_models:
+            candidate_models.append(fallback)
+
+    last_error = None
+
+    for model in candidate_models:
+        try:
+            logger.info(f"Calling Grok Vision API ({model}) for crop '{crop_type}'...")
+            response = requests.post(
+                GROK_API_URL,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {grok_api_key}",
+                },
+                json={
+                    "model": model,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": data_url,
+                                        "detail": "high"
+                                    }
+                                },
+                                {
+                                    "type": "text",
+                                    "text": prompt
                                 }
-                            },
-                            {
-                                "type": "text",
-                                "text": prompt
-                            }
-                        ]
-                    }
-                ],
-                "temperature": 0.2,
-                "max_tokens": 600,
-            },
-            timeout=30,
-        )
-        response.raise_for_status()
+                            ]
+                        }
+                    ],
+                    "temperature": 0.2,
+                    "max_tokens": 600,
+                },
+                timeout=30,
+            )
+            
+            if response.status_code == 404:
+                logger.warning(f"Grok model '{model}' returned 404 Not Found: {response.text}")
+                last_error = f"404 Not Found for model '{model}'"
+                continue  # Try next candidate model
 
-        response_data = response.json()
-        raw_content = (
-            response_data.get("choices", [{}])[0]
-            .get("message", {})
-            .get("content", "")
-            .strip()
-        )
+            response.raise_for_status()
 
-        # Strip markdown fences if present
-        if raw_content.startswith("```"):
-            raw_content = raw_content.split("```")[1]
-            if raw_content.startswith("json"):
-                raw_content = raw_content[4:]
-        raw_content = raw_content.strip()
+            response_data = response.json()
+            raw_content = (
+                response_data.get("choices", [{}])[0]
+                .get("message", {})
+                .get("content", "")
+                .strip()
+            )
 
-        parsed = json.loads(raw_content)
-        
-        prediction = parsed.get("prediction", "Unknown Disease")
-        confidence = float(parsed.get("confidence", 0.70))
-        explanation = parsed.get("explanation", "Identified via Grok Vision AI analysis.")
+            # Strip markdown fences if present
+            if raw_content.startswith("```"):
+                raw_content = raw_content.split("```")[1]
+                if raw_content.startswith("json"):
+                    raw_content = raw_content[4:]
+            raw_content = raw_content.strip()
 
-        logger.info(f"Grok Vision prediction: {prediction} (confidence: {confidence:.2f})")
-        return {
-            "prediction": str(prediction),
-            "confidence": round(float(confidence), 4),
-            "explanation": str(explanation),
-        }
+            parsed = json.loads(raw_content)
+            
+            prediction = parsed.get("prediction", "Unknown Disease")
+            confidence = float(parsed.get("confidence", 0.70))
+            explanation = parsed.get("explanation", "Identified via Grok Vision AI analysis.")
 
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Grok Vision API HTTP request failed: {e}")
-        return None
-    except (json.JSONDecodeError, KeyError, ValueError) as e:
-        logger.error(f"Failed to parse Grok Vision API response: {e}")
-        return None
+            logger.info(f"Grok Vision prediction success using '{model}': {prediction} (confidence: {confidence:.2f})")
+            return {
+                "prediction": str(prediction),
+                "confidence": round(float(confidence), 4),
+                "explanation": str(explanation),
+            }
+
+        except requests.exceptions.RequestException as e:
+            resp_text = getattr(e.response, "text", str(e))
+            logger.error(f"Grok Vision API HTTP error for model '{model}': {e} | Details: {resp_text}")
+            last_error = str(e)
+        except (json.JSONDecodeError, KeyError, ValueError) as e:
+            logger.error(f"Failed to parse Grok Vision API response for model '{model}': {e}")
+            last_error = str(e)
+
+    logger.error(f"All Grok Vision candidate models failed. Last error: {last_error}")
+    return None
+
