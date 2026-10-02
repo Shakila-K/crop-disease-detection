@@ -19,7 +19,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # Default model and URL
-DEFAULT_GROK_VISION_MODEL = "grok-2-vision-1212"
+DEFAULT_GROK_VISION_MODEL = "grok-4.20-non-reasoning"
 GROK_API_URL = "https://api.x.ai/v1/chat/completions"
 
 
@@ -76,9 +76,10 @@ Return ONLY a valid JSON object with no markdown formatting or fences:
     # List of vision models to try in case specific version is not enabled on account
     primary_model = os.getenv("GROK_VISION_MODEL", DEFAULT_GROK_VISION_MODEL).strip()
     candidate_models = [primary_model]
-    for fallback in ["grok-2-vision", "grok-vision-beta", "grok-2-latest"]:
+    for fallback in ["grok-4.20-non-reasoning", "grok-4.20", "grok-4.3", "grok-4.5", "grok-2-vision", "grok-2-vision-1212"]:
         if fallback not in candidate_models:
             candidate_models.append(fallback)
+
 
     last_error = None
 
