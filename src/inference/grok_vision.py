@@ -27,6 +27,7 @@ def predict_with_grok_vision(
     image_bytes: bytes,
     crop_type: str,
     trained_classes: Optional[List[str]] = None,
+    language: str = "en",
 ) -> Optional[Dict]:
     """
     Query xAI Grok Vision API to detect crop disease from image bytes.
@@ -35,6 +36,7 @@ def predict_with_grok_vision(
         image_bytes: Raw bytes of the image file.
         crop_type: Crop type name (e.g. 'potato', 'tomato').
         trained_classes: List of class names supported by the local model.
+        language: Language code for the response ('en', 'si', 'ta', 'hi').
 
     Returns:
         Dict with keys ('prediction', 'confidence', 'explanation') if successful,
@@ -55,6 +57,22 @@ def predict_with_grok_vision(
     if trained_classes:
         classes_info = f"\nClasses known by local model: {', '.join(trained_classes)}"
 
+    # Language instruction for non-English responses
+    _LANGUAGE_NAMES = {
+        "en": "English",
+        "si": "Sinhala (සිංහල)",
+        "ta": "Tamil (தமிழ்)",
+        "hi": "Hindi (हिन्दी)",
+    }
+    lang_name = _LANGUAGE_NAMES.get(language, "English")
+    language_instruction = ""
+    if language and language != "en":
+        language_instruction = (
+            f"\n\nIMPORTANT: You MUST write the 'explanation' field entirely in {lang_name}. "
+            f"The 'prediction' field should remain in English for system compatibility. "
+            f"The 'confidence' field is a number and requires no translation."
+        )
+
     prompt = f"""You are an expert plant pathologist and agricultural consultant.
 Analyze this leaf image for a plant of crop type: '{crop_type}'.{classes_info}
 
@@ -64,7 +82,7 @@ Examine the visual symptoms on the plant tissue (e.g. lesions, leaf spots, bligh
 Determine:
 1. The most accurate disease name (e.g., 'Late Blight', 'Early Blight', 'Leaf Mold', 'Yellow Leaf Curl Virus', or 'Healthy').
 2. Your confidence level (between 0.0 and 1.0).
-3. A concise diagnostic explanation describing the visible symptoms that support your diagnosis.
+3. A concise diagnostic explanation describing the visible symptoms that support your diagnosis.{language_instruction}
 
 Return ONLY a valid JSON object with no markdown formatting or fences:
 {{

@@ -29,6 +29,7 @@ async def predict_disease(
     image: UploadFile = File(..., description="Image file of the crop leaf/fruit"),
     crop_type: str = Form(..., description="Type of crop (e.g., 'potato', 'tomato')"),
     model_type: str = Form("local", description="Detection model type: 'local' (default) or 'advanced'"),
+    language: str = Form("en", description="Language code for response: 'en', 'si', 'ta', 'hi'"),
     user_id: str = Depends(get_current_user),
 ):
     """
@@ -36,7 +37,7 @@ async def predict_disease(
     Supports selecting between 'local' PyTorch model and 'advanced' Grok Vision model.
     Requires a valid JWT token from the Govi backend.
     """
-    logger.info(f"User {user_id} requested prediction for crop: {crop_type}, model_type: {model_type}")
+    logger.info(f"User {user_id} requested prediction for crop: {crop_type}, model_type: {model_type}, language: {language}")
 
     # Validate file size
     image.file.seek(0, 2)
@@ -62,12 +63,14 @@ async def predict_disease(
     try:
         image_bytes = await image.read()
         selected_model = model_type.lower().strip()
+        lang_code = language.lower().strip() if language else "en"
 
         if selected_model == "advanced":
             logger.info("Advanced model selected. Directing to Grok Vision API.")
             grok_result = predict_with_grok_vision(
                 image_bytes=image_bytes,
                 crop_type=crop_type,
+                language=lang_code,
             )
             if grok_result:
                 return PredictionResponse(
@@ -98,6 +101,7 @@ async def predict_disease(
                 image_bytes=image_bytes,
                 crop_type=crop_type,
                 trained_classes=list(result.get("all_probabilities", {}).keys()),
+                language=lang_code,
             )
             if grok_result:
                 result["fallback_used"] = True
